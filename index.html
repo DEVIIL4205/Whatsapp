@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WhatsApp Sender — Stylish Panel</title>
+  <style>
+    /* Minimal reset */
+    * { box-sizing: border-box; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    body { margin:0; background: linear-gradient(135deg,#0b0b0b,#191919); color:#fff; min-height:100vh; display:flex; justify-content:center; padding:32px; }
+    .wrap { width:100%; max-width:980px; }
+
+    h1 { text-align:center; color:#ffd800; margin:0 0 18px; font-size:28px; text-shadow:0 0 12px rgba(255,216,0,0.25); }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,216,0,0.12);
+      border-radius:14px;
+      padding:18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      margin-bottom:20px;
+      transition:transform .25s ease, box-shadow .25s ease;
+    }
+    .card:hover { transform:translateY(-6px); box-shadow:0 18px 50px rgba(255,200,0,0.12); }
+
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .col { flex:1; min-width:220px; }
+
+    label { display:block; font-weight:600; color:#ffd800; margin-bottom:6px; font-size:14px; }
+    input[type=text], input[type=number], textarea, select {
+      width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,216,0,0.12);
+      background:rgba(0,0,0,0.45); color:#fff; outline:none; font-size:14px;
+    }
+    input[type=file] { color:#fff; }
+
+    .btn {
+      display:inline-block; padding:10px 14px; border-radius:10px; cursor:pointer; border:none;
+      background:linear-gradient(90deg,#ffd800,#ff9900); color:#000; font-weight:700; box-shadow:0 8px 30px rgba(255,200,0,0.18);
+    }
+    .btn.secondary { background:linear-gradient(90deg,#444,#222); color:#ffd800; box-shadow:none; }
+
+    .qr-box { text-align:center; padding:8px; background:rgba(255,255,255,0.02); border-radius:8px; }
+    .qr-box img { width:200px; height:200px; object-fit:contain; }
+
+    .logs { background: #050505; padding:12px; border-radius:8px; height:160px; overflow:auto; color:#ffd800; font-family: monospace; font-size:13px; border:1px solid rgba(255,216,0,0.08); }
+
+    .small { font-size:12px; color:#ccc; margin-top:6px; }
+
+    .flex-between { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+
+    @media (max-width:720px) {
+      .row { flex-direction:column; }
+      .col { min-width:100%; }
+      .qr-box img { width:160px;height:160px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🔥 WhatsApp Stylish Sender</h1>
+
+    <!-- PAIR + GROUP CARD -->
+    <div class="card">
+      <div class="row">
+        <div class="col">
+          <label>Phone (for pairing)</label>
+          <input id="phone" type="text" placeholder="+9198xxxxxxxx">
+          <div style="margin-top:10px;" class="flex-between">
+            <button class="btn" onclick="startPair()">Start Pairing (show QR)</button>
+            <button class="btn secondary" onclick="stopPair()">Stop Pairing</button>
+          </div>
+          <div class="small">Open WhatsApp → Linked devices → Link a device → scan the QR below</div>
+        </div>
+
+        <div class="col">
+          <label>QR / Status</label>
+          <div class="qr-box" id="qrBox">
+            <div id="qrMsg">Waiting for QR...</div>
+          </div>
+          <div style="margin-top:10px;" class="small"><strong>Status:</strong> <span id="statusText">Initializing...</span></div>
+        </div>
+      </div>
+
+      <hr style="margin:14px 0; border:none; height:1px; background:rgba(255,216,0,0.06)">
+
+      <div style="margin-top:6px;">
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <button class="btn" onclick="fetchGroups()">Fetch My Group UIDs</button>
+          <div style="flex:1;">
+            <label>My Groups (name → id)</label>
+            <div class="logs" id="groupsBox">No groups yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SENDING CARD -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+        <div style="flex:1">
+          <label>Send To (type)</label>
+          <select id="targetType">
+            <option value="number">Target Number</option>
+            <option value="group">Group UID</option>
+          </select>
+        </div>
+        <div style="flex:2">
+          <label>Target Value</label>
+          <input id="targetValue" type="text" placeholder="number (9198...) or group id (1205...@g.us)">
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px; margin-top:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px;">
+          <label>Hetter Name (prefix)</label>
+          <input id="hetter" type="text" placeholder="BotName">
+        </div>
+        <div style="flex:1; min-width:200px;">
+          <label>Delay (ms)</label>
+          <input id="delayMs" type="number" value="5000" placeholder="5000">
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <label>Message Text (optional)</label>
+        <textarea id="messageText" placeholder="Single message text (or upload .txt)"></textarea>
+      </div>
+
+      <div style="margin-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <div>
+          <label>Upload .txt (one message per line)</label>
+          <input id="fileInput" type="file" accept=".txt">
+        </div>
+        <div style="flex:1">
+          <label>Stop Key (keeps current stop key when started)</label>
+          <input id="stopKeyInput" type="text" placeholder="Leave blank to auto-generate">
+        </div>
+      </div>
+
+      <div style="margin-top:14px;" class="flex-between">
+        <div style="display:flex; gap:8px;">
+          <button class="btn" onclick="startSending()">🚀 Start</button>
+          <button class="btn secondary" onclick="manualStop()">🛑 Stop (by key)</button>
+        </div>
+        <div style="text-align:right;">
+          <div class="small">Generated Stop Key: <b id="generatedStopKey">—</b></div>
+          <div class="small">Active Task: <b id="activeTask">No</b></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <label>Recent Logs</label>
+        <div class="logs" id="logsBox">No logs yet</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // simple polling & helpers
+    let qrInterval = null;
+    let statusInterval = null;
+
+    async function api(path, opts) {
+      const res = await fetch(path, opts);
+      return res.json();
+    }
+
+    async function startPair() {
+      // backend already produces QR when socket is created, but we request `qr` endpoint to show current qr
+      document.getElementById("qrMsg").innerText = "Waiting for QR...";
+      if (qrInterval) clearInterval(qrInterval);
+      qrInterval = setInterval(async () => {
+        const j = await api('/qr');
+        if (j.ok && j.dataUrl) {
+          document.getElementById("qrBox").innerHTML = '<img src="' + j.dataUrl + '" alt="QR">';
+          document.getElementById("statusText").innerText = "Scan QR with WhatsApp";
+        } else {
+          document.getElementById("qrBox").innerHTML = '<div id="qrMsg">No QR yet</div>';
+        }
+      }, 1000);
+
+      if (statusInterval) clearInterval(statusInterval);
+      statusInterval = setInterval(async ()=>{
+        const s = await api('/status');
+        document.getElementById("statusText").innerText = s.connected ? "Connected" : (s.hasQR ? "Waiting QR" : "Not connected");
+      }, 2000);
+    }
+
+    function stopPair() {
+      if (qrInterval) clearInterval(qrInterval);
+      if (statusInterval) clearInterval(statusInterval);
+      document.getElementById("qrBox").innerHTML = '<div id="qrMsg">Pairing stopped</div>';
+      document.getElementById("statusText").innerText = "Stopped";
+    }
+
+    async function fetchGroups() {
+      const res = await api('/groups');
+      if (!res.ok) {
+        document.getElementById('groupsBox').innerText = 'Not paired / no groups';
+        return;
+      }
+      const html = res.groups.map(g => `${g.subject} → ${g.id}`).join('\\n');
+      document.getElementById('groupsBox').innerText = html || 'No groups found';
+    }
+
+    async function refreshLogs() {
+      const r = await api('/logs');
+      if (r.ok) {
+        document.getElementById('logsBox').innerText = r.logs.join('\\n');
+      }
+    }
+
+    // start poll logs
+    setInterval(refreshLogs, 3000);
+
+    async function startSending() {
+      const targetType = document.getElementById('targetType').value;
+      const targetValue = document.getElementById('targetValue').value.trim();
+      const hetter = document.getElementById('hetter').value.trim();
+      const delayMs = document.getElementById('delayMs').value || 5000;
+      const text = document.getElementById('messageText').value.trim();
+      const file = document.getElementById('fileInput').files[0];
+      let stopKey = document.getElementById('stopKeyInput').value.trim();
+
+      if (!targetValue) return alert('Enter target number or GC UID');
+
+      const form = new FormData();
+      form.append('targetType', targetType);
+      form.append('targetValue', targetValue);
+      form.append('hetter', hetter);
+      form.append('delayMs', delayMs);
+      form.append('text', text);
+      if (file) form.append('file', file);
+      if (stopKey) form.append('stopKey', stopKey);
+
+      const res = await fetch('/start', { method:'POST', body: form });
+      const j = await res.json();
+      if (j.ok) {
+        document.getElementById('generatedStopKey').innerText = j.stopKey;
+        document.getElementById('activeTask').innerText = 'Yes';
+        refreshLogs();
+        alert('Started. Stop Key: ' + j.stopKey);
+      } else {
+        alert('Start failed: ' + (j.error || j.msg));
+      }
+    }
+
+    async function manualStop() {
+      const key = prompt('Enter stop key to stop');
+      if (!key) return;
+      const res = await fetch('/stop', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ stopKey: key })
+      });
+      const j = await res.json();
+      if (j.ok) {
+        document.getElementById('activeTask').innerText = 'No';
+        document.getElementById('generatedStopKey').innerText = '—';
+        refreshLogs();
+        alert('Stopped');
+      } else {
+        alert('Stop failed: ' + (j.msg || j.error));
+      }
+    }
+
+    // initial status check
+    (async ()=> {
+      const s = await api('/status');
+      document.getElementById("statusText").innerText = s.connected ? "Connected" : "Not connected";
+      refreshLogs();
+    })();
+
+  </script>
+</body>
+</html>
